@@ -43,6 +43,12 @@ def main():
         default=30, 
         help="Maximum number of messages in history before summarization"
     )
+    parser.add_argument(
+        "--load-state", 
+        type=str, 
+        default=None, 
+        help="Path to a saved state to load"
+    )
     
     args = parser.parse_args()
     
@@ -64,7 +70,8 @@ def main():
         rom_path=rom_path,
         headless=not args.display,
         sound=args.sound if args.display else False,
-        max_history=args.max_history
+        max_history=args.max_history,
+        load_state=args.load_state,
     )
     
     try:

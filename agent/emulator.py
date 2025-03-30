@@ -51,11 +51,7 @@ class Emulator:
         Args:
             state_filename: Path to the state file
         """
-        with open(state_filename, 'rb') as f:
-            state_data = pickle.load(f)
-            # Extract the PyBoy state from the full state data
-            pyboy_state_io = io.BytesIO(state_data["pyboy_state"])
-            self.pyboy.load_state(pyboy_state_io)
+        self.pyboy.load_state(open(state_filename, "rb"))
 
     def press_buttons(self, buttons, wait=True):
         """Press a sequence of buttons on the Game Boy.

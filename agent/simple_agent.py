@@ -94,7 +94,7 @@ if USE_NAVIGATOR:
 
 
 class SimpleAgent:
-    def __init__(self, rom_path, headless=True, sound=False, max_history=60):
+    def __init__(self, rom_path, headless=True, sound=False, max_history=60, load_state=None):
         """Initialize the simple agent.
 
         Args:
@@ -109,6 +109,9 @@ class SimpleAgent:
         self.running = True
         self.message_history = [{"role": "user", "content": "You may now begin playing."}]
         self.max_history = max_history
+        if load_state:
+            logger.info(f"Loading saved state from {load_state}")
+            self.emulator.load_state(load_state)
 
     def process_tool_call(self, tool_call):
         """Process a single tool call."""
