@@ -1090,8 +1090,9 @@ class PokemonRedReader:
             if 0xC9 <= item_id <= 0xFE:
                 tm_num = item_id - 0xC8
                 item_name = f"TM{tm_num:02d}"
-            # Handle HMs (0x01-0x05 in different range - need to test)
-            # Not implementing HMs until we confirm their IDs
+            elif 0xC4 <= item_id <= 0xC8:
+                hm_num = item_id - 0xC3
+                item_name = f"HM{hm_num:02d}"
             elif item_id in ITEM_NAMES:
                 item_name = ITEM_NAMES[item_id]
             else:
