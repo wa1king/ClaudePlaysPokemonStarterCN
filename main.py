@@ -207,10 +207,29 @@ def main():
         logger.info(f"开始代理，运行{args.steps}步")
         steps_completed = agent.run(num_steps=args.steps)
         logger.info(f"代理完成{steps_completed}步")
+        
+        # 程序正常完成时进行最终保存
+        if agent.auto_save_enabled and steps_completed > 0:
+            logger.info("程序正常完成，执行最终保存...")
+            agent.auto_save(agent.total_steps)
+        
+        # 保存最终的API请求参数
+        agent.save_api_request_data()
+            
     except KeyboardInterrupt:
         logger.info("收到键盘中断，正在停止")
+        # 键盘中断时也进行保存
+        if agent.auto_save_enabled:
+            logger.info("键盘中断时执行保存...")
+            agent.auto_save(agent.total_steps)
+        
+        # 保存最终的API请求参数
+        agent.save_api_request_data()
     except Exception as e:
         logger.error(f"运行代理时出错: {e}")
+        # 异常时进行紧急保存
+        if agent.auto_save_enabled:
+            agent.emergency_save()
     finally:
         agent.stop()
 

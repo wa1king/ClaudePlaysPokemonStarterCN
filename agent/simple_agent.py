@@ -8,6 +8,7 @@ import pickle
 import shutil
 import time
 from datetime import datetime
+import pandas as pd
 
 from config import MAX_TOKENS, MODEL_NAME, TEMPERATURE, USE_NAVIGATOR
 
@@ -113,6 +114,22 @@ class SimpleAgent:
             save_dir: Directory to save game states
             auto_save_enabled: Whether to enable automatic saving
         """
+        # 初始化Excel文本日志功能
+        self.text_log_file = "claude_text_log.xlsx"
+        
+        # 如果Excel文件已存在，读取现有数据
+        if os.path.exists(self.text_log_file):
+            try:
+                existing_df = pd.read_excel(self.text_log_file)
+                self.text_log_data = existing_df.to_dict('records')
+                logger.info(f"📊 已加载现有文本日志，包含 {len(self.text_log_data)} 条记录")
+            except Exception as e:
+                logger.warning(f"⚠️ 读取文本日志文件失败: {e}，将创建新文件")
+                self.text_log_data = []
+        else:
+            self.text_log_data = []
+            logger.info("📊 创建新的文本日志文件")
+        
         self.emulator = Emulator(rom_path, headless, sound)
         self.emulator.initialize()  # Initialize the emulator
         self.client = Anthropic(api_key="sk-ksbCidPFhLiGTRo_I4fflYASF92UHYC8S1DNHp2kkbTaJkRShC8oOKPIJdI",  # 替换为您的实际API key
@@ -262,9 +279,23 @@ class SimpleAgent:
         except Exception as e:
             logger.error(f"❌ [自动保存] 保存失败，游戏将继续运行: {e}")
 
+    def save_api_request_data(self):
+        """保存最后一次的API请求参数到文件"""
+        if hasattr(self, 'last_api_request_data'):
+            real_request_file = "real_api_request.json"
+            try:
+                with open(real_request_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.last_api_request_data, f, ensure_ascii=False, indent=2)
+                logger.info(f"💾 已保存最终API请求参数到: {real_request_file}")
+            except Exception as e:
+                logger.warning(f"⚠️ 保存API请求参数失败: {e}")
+
     def emergency_save(self):
         """紧急保存方法"""
         logger.info("🚨 检测到程序异常退出，正在执行紧急保存...")
+        
+        # 保存API请求参数
+        self.save_api_request_data()
         
         # 创建临时字节流来保存PyBoy状态
         pyboy_state_buffer = io.BytesIO()
@@ -506,9 +537,8 @@ class SimpleAgent:
                 # 2. API调用阶段
                 api_start = time.time()  # 新增
                 
-                # 保存真实的API请求参数到文件 (每次运行都保存)
-                real_request_file = "real_api_request.json"
-                real_request_data = {
+                # 存储最后一次的API请求参数，退出时保存
+                self.last_api_request_data = {
                     "model": MODEL_NAME,
                     "max_tokens": MAX_TOKENS,
                     "system": SYSTEM_PROMPT,
@@ -519,13 +549,6 @@ class SimpleAgent:
                     "step_number": self.total_steps + 1,
                     "description": "真实游戏运行时的API请求参数"
                 }
-                
-                try:
-                    with open(real_request_file, 'w', encoding='utf-8') as f:
-                        json.dump(real_request_data, f, ensure_ascii=False, indent=2)
-                    logger.info(f"💾 已保存真实API请求参数到: {real_request_file}")
-                except Exception as e:
-                    logger.warning(f"⚠️ 保存API请求参数失败: {e}")
                 last_two_messages = messages[-2:] if len(messages) >= 2 else messages
                 response = self.client.messages.create(
                     model=MODEL_NAME,
@@ -546,12 +569,34 @@ class SimpleAgent:
                     block for block in response.content if block.type == "tool_use"
                 ]
 
-                # Display the model's reasoning
+                # 收集当前步骤的所有文本内容
+                step_texts = []
+                
+                # Display the model's reasoning and collect text
                 for block in response.content:
                     if block.type == "text":
                         logger.info(f"[文本] {block.text}")
+                        step_texts.append(block.text)
                     elif block.type == "tool_use":
                         logger.info(f"[工具] 使用工具: {block.name}")
+                
+                # 保存文本内容到Excel日志
+                if step_texts:
+                    # 合并当前步骤的所有文本
+                    combined_text = "\n".join(step_texts)
+                    
+                    # 添加到日志数据
+                    self.text_log_data.append({
+                        "步数": self.total_steps + 1,
+                        "文本内容": combined_text
+                    })
+                    
+                    # 更新Excel文件
+                    try:
+                        pd.DataFrame(self.text_log_data).to_excel(self.text_log_file, index=False)
+                        logger.info(f"📊 已更新文本日志到 {self.text_log_file}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ 保存文本日志失败: {e}")
                 process_time = time.time() - process_start  # 新增
 
                 # 4. 工具调用阶段
@@ -613,18 +658,16 @@ class SimpleAgent:
                 print(f"   🎯 总耗时: {total_time:.3f}秒")
 
         except (KeyboardInterrupt, Exception) as e:
-            if self.auto_save_enabled:
-                self.emergency_save()
             if isinstance(e, KeyboardInterrupt):
-                logger.info("⏹️ 收到键盘中断信号，游戏已安全停止")
+                logger.info("⏹️ 收到键盘中断信号")
                 self.running = False
             else:
                 logger.error(f"❌ 代理循环中出现错误: {e}")
+                if self.auto_save_enabled:
+                    self.emergency_save()
             raise e
 
-        if not self.running:
-            self.emulator.stop()
-
+        # 正常完成循环时，不在这里停止模拟器，让main.py处理
         return steps_completed
 
     def summarize_history(self):
