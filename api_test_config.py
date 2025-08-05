@@ -17,7 +17,7 @@ API_CONFIG = {
 
 # 你可以在这里输入任何你想测试的模型列表
 USER_TEST_MODELS = [
-    "claude-3-7-sonnet-20250219",
+    #"claude-3-7-sonnet-20250219",
     "claude-sonnet-4-20250514", 
     #"gemini-2.5-flash",
     #"gpt-4.1"

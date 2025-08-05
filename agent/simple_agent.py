@@ -506,33 +506,32 @@ class SimpleAgent:
                 # 2. API调用阶段
                 api_start = time.time()  # 新增
                 
-                # 保存真实的API请求参数到文件 (仅保存一次)
+                # 保存真实的API请求参数到文件 (每次运行都保存)
                 real_request_file = "real_api_request.json"
-                if not os.path.exists(real_request_file):
-                    real_request_data = {
-                        "model": MODEL_NAME,
-                        "max_tokens": MAX_TOKENS,
-                        "system": SYSTEM_PROMPT,
-                        "messages": messages,
-                        "tools": AVAILABLE_TOOLS,
-                        "temperature": TEMPERATURE,
-                        "timestamp": datetime.now().isoformat(),
-                        "step_number": self.total_steps + 1,
-                        "description": "真实游戏运行时的API请求参数"
-                    }
-                    
-                    try:
-                        with open(real_request_file, 'w', encoding='utf-8') as f:
-                            json.dump(real_request_data, f, ensure_ascii=False, indent=2)
-                        logger.info(f"💾 已保存真实API请求参数到: {real_request_file}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ 保存API请求参数失败: {e}")
+                real_request_data = {
+                    "model": MODEL_NAME,
+                    "max_tokens": MAX_TOKENS,
+                    "system": SYSTEM_PROMPT,
+                    "messages": messages,
+                    "tools": AVAILABLE_TOOLS,
+                    "temperature": TEMPERATURE,
+                    "timestamp": datetime.now().isoformat(),
+                    "step_number": self.total_steps + 1,
+                    "description": "真实游戏运行时的API请求参数"
+                }
                 
+                try:
+                    with open(real_request_file, 'w', encoding='utf-8') as f:
+                        json.dump(real_request_data, f, ensure_ascii=False, indent=2)
+                    logger.info(f"💾 已保存真实API请求参数到: {real_request_file}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 保存API请求参数失败: {e}")
+                last_two_messages = messages[-2:] if len(messages) >= 2 else messages
                 response = self.client.messages.create(
                     model=MODEL_NAME,
                     max_tokens=MAX_TOKENS,
                     system=SYSTEM_PROMPT,
-                    messages=messages,
+                    messages=last_two_messages,
                     tools=AVAILABLE_TOOLS,
                     temperature=TEMPERATURE,
                 )
