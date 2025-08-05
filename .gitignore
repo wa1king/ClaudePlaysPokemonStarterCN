@@ -48,3 +48,17 @@ ENV/
 
 # System
 .DS_Store
+
+# 游戏存档文件
+saves/
+*.pkl
+
+# API测试数据
+real_api_request.json
+
+# 虚拟环境
+ClaudePlaysPokemonStarter/
+
+# 临时文件
+*.tmp
+*.temp

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum, IntFlag
-
+from typing import Union, Optional
 
 class StatusCondition(IntFlag):
     NONE = 0
@@ -699,12 +699,12 @@ class PokemonData:
     level: int
     status: StatusCondition
     type1: PokemonType
-    type2: PokemonType | None
+    type2: Optional[PokemonType]
     moves: list[str]  # Move names
     move_pp: list[int]  # PP for each move
     trainer_id: int
-    nickname: str | None = None
-    experience: int | None = None
+    nickname: Optional[str] = None
+    experience: Optional[int] = None
     
     @property
     def is_asleep(self) -> bool:

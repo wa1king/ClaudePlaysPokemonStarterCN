@@ -37,7 +37,7 @@ class Emulator:
         self.pyboy.set_emulation_speed(0)
         for _ in range(60):
             self.tick(60)
-        self.pyboy.set_emulation_speed(1)
+        self.pyboy.set_emulation_speed(2)
 
     def get_screenshot(self):
         """Get the current screenshot."""
@@ -67,19 +67,19 @@ class Emulator:
         
         for button in buttons:
             if button not in ["a", "b", "start", "select", "up", "down", "left", "right"]:
-                results.append(f"Invalid button: {button}")
+                results.append(f"无效按钮: {button}")
                 continue
                 
             self.pyboy.button_press(button)
-            self.tick(10)   # Press briefly
+            self.tick(5)   # Press briefly
             self.pyboy.button_release(button)
             
             if wait:
-                self.tick(120) # Wait longer after button release
+                self.tick(60) # Wait longer after button release
             else:
                 self.tick(10)   # Brief pause between button presses
                 
-            results.append(f"Pressed {button}")
+            results.append(f"已按下 {button}")
         
         return "\n".join(results)
 
@@ -197,11 +197,11 @@ class Emulator:
         lines.extend(
             [
                 "",
-                "Legend:",
-                "█ - Wall/Obstacle",
-                "· - Path/Walkable",
-                "S - Sprite",
-                f"{direction_chars['up']}/{direction_chars['down']}/{direction_chars['left']}/{direction_chars['right']} - Player (facing direction)",
+                "图例:",
+                "█ - 墙壁/障碍物",
+                "· - 路径/可行走",
+                "S - 精灵",
+                f"{direction_chars['up']}/{direction_chars['down']}/{direction_chars['left']}/{direction_chars['right']} - 玩家 (面向方向)",
             ]
         )
 
@@ -358,7 +358,7 @@ class Emulator:
 
         # Validate target position
         if not (0 <= target_row < 9 and 0 <= target_col < 10):
-            return "Invalid target coordinates", []
+            return "无效的目标坐标", []
 
         # A* algorithm
         def heuristic(a, b):
@@ -399,12 +399,12 @@ class Emulator:
                 is_wall = terrain[end[0]][end[1]] == 0
                 if is_wall:
                     return (
-                        f"Partial Success: Your target location is a wall. In case this is intentional, attempting to navigate there.",
+                        f"部分成功: 你的目标位置是墙壁。如果这是故意的，尝试导航到那里。",
                         path,
                     )
                 else:
                     return (
-                        f"Success: Found path to target at ({target_row}, {target_col}).",
+                        f"成功: 找到通往目标 ({target_row}, {target_col}) 的路径。",
                         path,
                     )
 
@@ -429,7 +429,7 @@ class Emulator:
                 else:
                     path.append("left")
                 return (
-                    f"Success: Found path to position adjacent to wall at ({target_row}, {target_col}).",
+                    f"成功: 找到通往墙壁 ({target_row}, {target_col}) 相邻位置的路径。",
                     path,
                 )
 
@@ -476,12 +476,12 @@ class Emulator:
         if closest_point != start:
             path = reconstruct_path(closest_point)
             return (
-                f"Partial Success: Could not reach the exact target, but found a path to the closest reachable point.",
+                f"部分成功: 无法到达确切目标，但找到了通往最近可达点的路径。",
                 path,
             )
 
         return (
-            "Failure: No path is visible to the chosen location. You may need to explore a totally different path to get where you're trying to go.",
+            "失败: 看不到通往所选位置的路径。你可能需要探索完全不同的路径才能到达目的地。",
             [],
         )
 
@@ -494,45 +494,45 @@ class Emulator:
 
         name = reader.read_player_name()
         if name == "NINTEN":
-            name = "Not yet set"
+            name = "尚未设置"
         rival_name = reader.read_rival_name()
         if rival_name == "SONY":
-            rival_name = "Not yet set"
+            rival_name = "尚未设置"
 
         # Get valid moves
         valid_moves = self.get_valid_moves()
-        valid_moves_str = ", ".join(valid_moves) if valid_moves else "None"
+        valid_moves_str = ", ".join(valid_moves) if valid_moves else "无"
 
-        memory_str += f"Player: {name}\n"
-        memory_str += f"Rival: {rival_name}\n"
-        memory_str += f"Money: ${reader.read_money()}\n"
-        memory_str += f"Location: {reader.read_location()}\n"
-        memory_str += f"Coordinates: {reader.read_coordinates()}\n"
-        memory_str += f"Valid Moves: {valid_moves_str}\n"
-        memory_str += f"Badges: {', '.join(reader.read_badges())}\n"
+        memory_str += f"玩家: {name}\n"
+        memory_str += f"对手: {rival_name}\n"
+        memory_str += f"金钱: ${reader.read_money()}\n"
+        memory_str += f"位置: {reader.read_location()}\n"
+        memory_str += f"坐标: {reader.read_coordinates()}\n"
+        memory_str += f"有效移动: {valid_moves_str}\n"
+        memory_str += f"徽章: {', '.join(reader.read_badges())}\n"
 
         # Inventory
-        memory_str += "Inventory:\n"
+        memory_str += "背包:\n"
         for item, qty in reader.read_items():
             memory_str += f"  {item} x{qty}\n"
 
         # Dialog
         dialog = reader.read_dialog()
         if dialog:
-            memory_str += f"Dialog: {dialog}\n"
+            memory_str += f"对话: {dialog}\n"
         else:
-            memory_str += "Dialog: None\n"
+            memory_str += f"对话: 无\n"
 
         # Party Pokemon
-        memory_str += "\nPokemon Party:\n"
+        memory_str += "\n宝可梦队伍:\n"
         for pokemon in reader.read_party_pokemon():
             memory_str += f"\n{pokemon.nickname} ({pokemon.species_name}):\n"
-            memory_str += f"Level {pokemon.level} - HP: {pokemon.current_hp}/{pokemon.max_hp}\n"
-            memory_str += f"Types: {pokemon.type1.name}{', ' + pokemon.type2.name if pokemon.type2 else ''}\n"
+            memory_str += f"等级 {pokemon.level} - 生命值: {pokemon.current_hp}/{pokemon.max_hp}\n"
+            memory_str += f"属性: {pokemon.type1.name}{', ' + pokemon.type2.name if pokemon.type2 else ''}\n"
             for move, pp in zip(pokemon.moves, pokemon.move_pp, strict=True):
-                memory_str += f"- {move} (PP: {pp})\n"
+                memory_str += f"- {move} (技能点: {pp})\n"
             if pokemon.status != StatusCondition.NONE:
-                memory_str += f"Status: {pokemon.status.get_status_name()}\n"
+                memory_str += f"状态: {pokemon.status.get_status_name()}\n"
 
         return memory_str
 
